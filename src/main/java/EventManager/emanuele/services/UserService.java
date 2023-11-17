@@ -1,9 +1,13 @@
 package EventManager.emanuele.services;
 
 import EventManager.emanuele.entities.Event;
+import EventManager.emanuele.entities.Role;
 import EventManager.emanuele.entities.User;
+import EventManager.emanuele.exceptions.BadRequestException;
 import EventManager.emanuele.exceptions.NotFoundException;
+import EventManager.emanuele.payloads.NewUserDTO;
 import EventManager.emanuele.repository.UsersRepository;
+import io.jsonwebtoken.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,16 +20,19 @@ public class UserService {
     @Autowired
     private UsersRepository usersRepository;
 
-    List<User> userList = new ArrayList<>();
-
-    public User save(User body){
-        this.userList.add(body);
-        return body;
+    public User save(NewUserDTO body) throws IOException {
+        usersRepository.findByEmail(body.email()).ifPresent( user -> {
+            throw new BadRequestException("L'email " + user.getEmail() + " è già utilizzata!");
+        });
+        User newUser = new User();
+        newUser.setName(body.name());
+        newUser.setSurname(body.surname());
+        newUser.setNickname(body.nickname());
+        newUser.setPassword(body.password());
+        newUser.setEmail(body.email());
+        newUser.setRole(Role.USER);
+        return usersRepository.save(newUser);
     };
-
-    public List<User> getUserList() {
-        return userList;
-    }
 
     public User findById(int id) throws NotFoundException{
         return usersRepository.findById(id).orElseThrow( ()  -> new NotFoundException(id));
@@ -42,6 +49,7 @@ public class UserService {
         newUser.setName(body.getName());
         newUser.setSurname(body.getSurname());
         newUser.setNickname(body.getNickname());
+        newUser.setPassword(body.getPassword());
         newUser.setEmail(body.getEmail());
         return usersRepository.save(newUser);
     }
